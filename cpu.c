@@ -1,9 +1,11 @@
-#include "cpu.h"
 #include <string.h>
+#include "cpu.h"
+#include "font.h"
 
 void c8_init(Chip8Cpu *const cpu) {
 	c8_zero(cpu);
 	cpu->program_counter = START_ADDR;
+    memcpy(cpu->memory, fontset, FONTSET_SIZE); // write default font to memory
 }
 
 void c8_zero(Chip8Cpu *const cpu) {

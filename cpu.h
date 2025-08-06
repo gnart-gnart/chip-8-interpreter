@@ -23,9 +23,8 @@ typedef struct {
 	// other data
 	word stack[STACK_SIZE]; // for entering / exiting subroutines
 	bool keys[NUM_KEYS];    // keyboard!
+    byte memory[RAM_SIZE];
 } Chip8Cpu;
-
-byte memory[RAM_SIZE];
 
 // functions
 void c8_init(Chip8Cpu *const cpu);
