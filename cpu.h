@@ -32,5 +32,6 @@ void c8_zero(Chip8Cpu *const cpu);
 void c8_push_stack(Chip8Cpu *const cpu, const word value);
 void c8_pop_stack(Chip8Cpu *const cpu);
 void c8_tick(Chip8Cpu *const cpu);
+void c8_execute(Chip8Cpu *const cpu, const word opcode);
 
 #endif // CPU_H

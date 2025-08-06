@@ -53,11 +53,15 @@ void c8_tick(Chip8Cpu *const cpu) {
     // increment program counter to next two bytes
     cpu->program_counter += 2;
     // execute instruction
-
+    cpu->c8_execute(opcode);
     // decrement timers
     if (cpu->delay_timer > 0) cpu->delay_timer--;
     if (cpu->sound_timer > 0) {
         cpu->sound_timer--;
         // TODO: Play a sound!
     }
+}
+
+void c8_execute(Chip8Cpu *const cpu, const word opcode) {
+
 }
