@@ -1,0 +1,236 @@
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h> // for rand
+#include "chip8.h"
+#include "font.h"
+#include "ui.h"
+
+// helper functions
+static inline void skip(Chip8 *const chip8) {
+	chip8->program_counter += 2;
+}
+
+// returns true if there is a collision between a sprite pixel and a screen pixel that are both on
+static inline bool draw_sprite(const byte height, const byte vx, const byte vy, const byte *const sprite_addr, ) {
+
+	bool collision = false;
+	// iterate through each row of the sprite (i.e., each byte)
+	for (int row = 0; row < height; row++) {
+		byte sprite_byte = memory[sprite_addr + row];
+
+		// iterate through each bit of the sprite byte
+		for (byte bit = 0; bit < 8; bit++) {
+
+			byte screen_x = vx + bit;
+			byte screen_y = vy + row;
+
+			bool sprite_pixel = (sprite_byte >> (7 - bit)) & 1;
+
+			if (sprite_pixel) {
+				if (screen[x][y]) {
+					collision = true;
+				}
+				screen[x][y] = !screen[x][y];
+			}
+		}
+
+	}
+
+	return collision;
+}
+
+// implementations
+void c8_init(Chip8 *const chip8) {
+	c8_zero(chip8);
+	chip8->program_counter = START_ADDR;
+    memcpy(chip8->memory, fontset, FONTSET_SIZE); // write default font to memory
+	ui_init(SCREEN_WIDTH, SCREEN_HEIGHT);
+}
+
+void c8_zero(Chip8 *const chip8) {
+	// reset V registers
+	chip8->v[0x0] = 0;
+	chip8->v[0x1] = 0;
+	chip8->v[0x2] = 0;
+	chip8->v[0x3] = 0;
+	chip8->v[0x4] = 0;
+	chip8->v[0x5] = 0;
+	chip8->v[0x6] = 0;
+	chip8->v[0x7] = 0;
+	chip8->v[0x8] = 0;
+	chip8->v[0x9] = 0;
+	chip8->v[0xA] = 0;
+	chip8->v[0xB] = 0;
+	chip8->v[0xC] = 0;
+	chip8->v[0xD] = 0;
+	chip8->v[0xE] = 0;
+	chip8->v[0xF] = 0;
+	// reset other registers
+	chip8->delay_timer = 0;
+	chip8->sound_timer = 0;
+	chip8->stack_pointer = 0;
+	chip8->index = 0;
+	// other data
+	memset(chip8->stack, 0, sizeof(chip8->stack));
+	memset(chip8->keys, false, sizeof(chip8->keys));
+	memset(chip8->screen, false, sizeof(chip8->screen));
+}
+
+void c8_push_stack(Chip8 *const chip8, const word value) {
+	chip8->stack_pointer++;
+	chip8->stack[chip8->stack_pointer] = value;
+}
+
+void c8_pop_stack(Chip8 *const chip8) {
+	chip8->stack[chip8->stack_pointer] = 0;
+	chip8->stack_pointer--;
+}
+
+void c8_tick(Chip8 *const chip8) {
+    // fetch opcode (which is the current two bytes)
+    word opcode = chip8->memory[chip8->program_counter] << 8 |
+        chip8->memory[chip8->program_counter + 1];
+    // increment program counter to next two bytes
+	c8_skip(chip8);
+	// execute instruction
+    chip8->c8_execute(opcode);
+    // decrement timers
+    if (chip8->delay_timer > 0) chip8->delay_timer--;
+    if (chip8->sound_timer > 0) {
+        chip8->sound_timer--;
+		ui_play_sound();
+	}
+}
+
+// see https://chip8.gulrak.net/ for documentation
+void c8_execute(Chip8 *const chip8, const word opcode) {
+	// opcode can be split into various digit combos for later purposes	
+	word nnn = (opcode & 0x0FFF); 		// last 3 digits of opcode
+	byte nn = (byte) opcode;			// last 2 digits of opcode
+	byte n = opcode & 0x000F;			// last digit of opcode
+	byte x = (opcode & 0x0F00) >> 8; 	// 2nd digit of opcode
+	byte y = (opcode & 0x00F0) >> 4;	// 3rd digit of opcode
+	byte a = (opcode & 0xF000) >> 12;	// first digit
+	byte v[NUM_V_REGS] = chip8->v;
+	// FIXME: might need to be byte* v = chip8->v;
+	// essentially trying to rename the array
+
+	switch (a) {
+
+		case 0x0:
+			switch (nnn) {
+				case 0x0E0:
+					ui_clear_screen();
+					break;
+				case 0x0EE:
+					chip8->pop_stack(chip8);
+					break;
+				default:
+					goto unrecognized_instr;
+					break;
+			}
+			break;
+
+		case 0x1:
+			chip8->program_counter = nnn;
+			break;
+		
+		case 0x2:
+			chip8->c8_push_stack(chip8, nnn);
+			break;
+
+		case 0x3:
+			if (v[x] == nn) c8_skip(chip8);
+			break;
+		
+		case 0x4:
+			if (v[x] != nn) c8_skip(chip8);
+			break;
+		
+		case 0x5:
+			if (v[x] == v[y]) c8_skip(chip8);
+			break;
+		
+		case 0x6:
+			v[x] = nn;
+			break;
+		
+		case 0x7:
+			v[x] += nn;
+			break;
+
+		case 0x8:
+			switch (n) {
+				case 0x0:
+					v[x] = v[y];
+					break;
+				case 0x1:
+					v[x] |= v[y];
+					break;
+				case 0x2:
+					v[x] &= v[y];
+					break;
+				case 0x3:
+					v[x] ^= v[y];
+					break;
+				case 0x4:
+					byte sum = v[x] + v[y];
+					v[0xF] = (sum < v[x]); // overflow?
+					v[x] = sum;
+					break;
+				case 0x5:
+					v[0xF] = (v[x] >= v[y]); // didn't borrow?
+					v[x] -= v[y];
+					break;
+				case 0x6:
+					v[0xF] = (v[x] & 1); // least significant bit
+					v[x] >>= v[y];
+					break;
+				case 0x7:
+					v[0xF] = (v[x] <= v[y]); // didn't borrow?
+					v[x] = v[y] - v[x];
+					break;
+				case 0xE:
+					v[0xF] = (v[x] >> 7) & 1; // most significant bit
+					v[x] <<= v[y];
+					break;
+				default:
+					goto unrecognized_instr;
+					break;
+			}
+			break;
+
+		case 0x9:
+			if (n == 0) {
+				if (v[x] != v[y]) c8_skip(c8_skip);
+			}
+			else {
+				goto unrecognized_instr;
+			}
+			break;
+		
+		case 0xA:
+			chip8->index = nnn;
+			break;
+
+		case 0xB:
+			chip8->program_counter = nnn + v[0];
+			break;
+
+		case 0xC:
+			v[x] = (rand() % 256) & nn;
+			break;
+
+		case 0xD:
+			
+			
+		default:
+			goto unrecognized_instr;
+			break;
+	}
+
+	return;
+	unrecognized_instr:
+		printf("Chip8: Yo bruh i dont get it wtf?\n");	
+}
+

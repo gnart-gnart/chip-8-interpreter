@@ -9,6 +9,7 @@
 #define START_ADDR      0x200 // 512 bytes
 #define STACK_SIZE      16
 #define NUM_KEYS        16
+#define NUM_V_REGS      16
 
 typedef uint8_t byte;
 typedef uint16_t word;

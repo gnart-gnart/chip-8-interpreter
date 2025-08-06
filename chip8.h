@@ -1,5 +1,5 @@
-#ifndef CPU_H 
-#define CPU_H
+#ifndef CHIP8_H 
+#define CHIP8_H
 
 #include "global.h" 
 #include <stdbool.h>
@@ -13,7 +13,7 @@ typedef uint16_t word;
 // that the interpreter should return to when finished with a subroutine
 typedef struct {
 	// 8-bit registers
-	byte v[0x10];           // 16 general purpose "V" registers
+	byte v[NUM_V_REGS];     // 16 general purpose "V" registers
 	byte delay_timer;       // delay timer register
 	byte sound_timer;       // sound timer register
 	byte stack_pointer;     // stack pointer register
@@ -24,14 +24,15 @@ typedef struct {
 	word stack[STACK_SIZE]; // for entering / exiting subroutines
 	bool keys[NUM_KEYS];    // keyboard!
     byte memory[RAM_SIZE];
-} Chip8Cpu;
+	bool screen[SCREEN_WIDTH][SCREEN_HEIGHT];
+} Chip8;
 
 // functions
-void c8_init(Chip8Cpu *const cpu);
-void c8_zero(Chip8Cpu *const cpu);
-void c8_push_stack(Chip8Cpu *const cpu, const word value);
-void c8_pop_stack(Chip8Cpu *const cpu);
-void c8_tick(Chip8Cpu *const cpu);
-void c8_execute(Chip8Cpu *const cpu, const word opcode);
+void c8_init(Chip8 *const cpu);
+void c8_zero(Chip8 *const cpu);
+void c8_push_stack(Chip8 *const cpu, const word value);
+void c8_pop_stack(Chip8 *const cpu);
+void c8_tick(Chip8 *const cpu);
+void c8_execute(Chip8 *const cpu, const word opcode);
 
-#endif // CPU_H
+#endif // CHIP8_H
