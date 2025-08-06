@@ -2,11 +2,11 @@
 #include <string.h>
 
 void c8_init(Chip8Cpu *const cpu) {
-	c8_reset(cpu);
+	c8_zero(cpu);
 	cpu->program_counter = START_ADDR;
 }
 
-void c8_reset(Chip8Cpu *const cpu) {
+void c8_zero(Chip8Cpu *const cpu) {
 	// reset V registers
 	cpu->v[0x0] = 0;
 	cpu->v[0x1] = 0;
@@ -29,7 +29,6 @@ void c8_reset(Chip8Cpu *const cpu) {
 	cpu->sound_timer = 0;
 	cpu->stack_pointer = 0;
 	cpu->index = 0;
-	cpu->program_counter = START_ADDR;
 	// other data
 	memset(cpu->stack, 0, sizeof(cpu->stack));
 	memset(cpu->keys, false, sizeof(cpu->keys));

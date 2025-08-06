@@ -25,12 +25,11 @@ typedef struct {
 	bool keys[NUM_KEYS];    // keyboard!
 } Chip8Cpu;
 
-// word opcode; // FIXME: Is this necessary?
 byte memory[RAM_SIZE];
 
 // functions
 void c8_init(Chip8Cpu *const cpu);
-void c8_reset(Chip8Cpu *const cpu);
+void c8_zero(Chip8Cpu *const cpu);
 void c8_push_stack(Chip8Cpu *const cpu, const word value);
 void c8_pop_stack(Chip8Cpu *const cpu);
 
