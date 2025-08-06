@@ -45,3 +45,19 @@ void c8_pop_stack(Chip8Cpu *const cpu) {
 	cpu->stack[cpu->stack_pointer] = 0;
 	cpu->stack_pointer--;
 }
+
+void c8_tick(Chip8Cpu *const cpu) {
+    // fetch opcode (which is the current two bytes)
+    word opcode = cpu->memory[cpu->program_counter] << 8 |
+        cpu->memory[cpu->program_counter + 1];
+    // increment program counter to next two bytes
+    cpu->program_counter += 2;
+    // execute instruction
+
+    // decrement timers
+    if (cpu->delay_timer > 0) cpu->delay_timer--;
+    if (cpu->sound_timer > 0) {
+        cpu->sound_timer--;
+        // TODO: Play a sound!
+    }
+}
