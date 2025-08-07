@@ -6,8 +6,21 @@
 #include "ui.h"
 
 // helper functions
-static inline void skip(Chip8 *const chip8) {
+static inline void c8_skip(Chip8 *const chip8) {
 	chip8->program_counter += 2;
+}
+
+static inline void c8_wait(Chip8 *const chip8) {
+	chip8->program_counter -= 2;
+}
+
+// return the k released this tick with the smallest index
+// returns NUM_KEYS if no key has released this tick
+static inline byte c8_key_released(Chip8 *const chip8) {
+	for (byte k = 0; k < NUM_KEYS; k++) {
+		if (keys_prev[k] && !keys[k]) return k;
+	}
+	return NUM_KEYS;
 }
 
 // returns true if there is a collision between a sprite pixel and a screen pixel that are both on
@@ -73,6 +86,7 @@ void c8_zero(Chip8 *const chip8) {
 	// other data
 	memset(chip8->stack, 0, sizeof(chip8->stack));
 	memset(chip8->keys, false, sizeof(chip8->keys));
+	memset(chip8->keys_prev, false, sizeof(chip8->keys_prev));
 	memset(chip8->screen, false, sizeof(chip8->screen));
 }
 
@@ -100,6 +114,7 @@ void c8_tick(Chip8 *const chip8) {
         chip8->sound_timer--;
 		ui_play_sound();
 	}
+	memcpy(keys_prev, keys, sizeof(keys));
 }
 
 // see https://chip8.gulrak.net/ for documentation
@@ -222,8 +237,67 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 			break;
 
 		case 0xD:
-			
-			
+			// TODO
+		case 0xE:
+			switch (nn) {
+				case 0x9E:
+					if (chip8->keys[v[x]]) c8_skip(chip8);
+					break;
+				case 0xA1:
+					if (!chip8->keys[v[x]]) c8_skip(chip8);
+					break;
+				default:
+					goto unrecognized_instr;
+					break;
+			}
+			break;
+		
+		case 0xF:
+			switch (nn) {
+				case 0x07:
+					v[x] = chip8->delay_timer;
+					break;
+				case 0x0A:
+					byte key = c8_key_released(chip8);
+					if (key != NUM_KEYS) {
+						v[x] = key;
+					}
+					else {
+						c8_wait(chip8);
+					}
+					break;
+				case 0x15:
+					chip8->delay_timer = v[x];
+					break;
+				case 0x18:
+					chip8->sound_timer = v[x];
+					break;
+				case 0x1E:
+					chip8->index += v[x];
+					break;
+				case 0x29:
+					chip8->index = fontset[v[x]];
+					break;
+				case 0x33: // convert v[x] to 3-digit decimal format
+					byte x = v[x];
+					chip8->memory[chip8->index] = (x - (x % 100)) / 100;
+					x -= chip8->memory[chip8->index] * 100;
+					chip8->memory[chip8->index + 1] = (x - (x % 10)) / 10;
+					x -= chip8->memory[chip8->index + 1] * 10;
+					chip8->memory[chip8->index + 2] = x; // FIXME: i have no idea if this is correct
+					break;
+				case 0x55:
+					memcpy(chip8->v, chip8->memory[chip8->index], x + 1);
+					chip8->index += x + 1;
+					break;
+				case 0x65:
+					memcpy(chip8->memory[chip8->index], chip8->v, x + 1);
+					chip8->index += x + 1;
+					break;
+				default:
+					goto unrecognized_instr;
+					break;
+			}
 		default:
 			goto unrecognized_instr;
 			break;
@@ -231,6 +305,6 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 
 	return;
 	unrecognized_instr:
-		printf("Chip8: Yo bruh i dont get it wtf?\n");	
+		printf("Chip8: Yo bruh i dont recognize this: %x wtf?\n", opcode);	
 }
 
