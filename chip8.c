@@ -24,21 +24,16 @@ static inline byte c8_key_released(Chip8 *const chip8) {
 }
 
 // returns true if there is a collision between a sprite pixel and a screen pixel that are both on
-static inline bool draw_sprite(const byte height, const byte vx, const byte vy, const byte *const sprite_addr, ) {
-
+static inline bool draw_sprite(const byte height, const byte vx, const byte vy, const byte *const sprite_addr) {
 	bool collision = false;
 	// iterate through each row of the sprite (i.e., each byte)
 	for (int row = 0; row < height; row++) {
 		byte sprite_byte = memory[sprite_addr + row];
-
 		// iterate through each bit of the sprite byte
 		for (byte bit = 0; bit < 8; bit++) {
-
 			byte screen_x = vx + bit;
 			byte screen_y = vy + row;
-
 			bool sprite_pixel = (sprite_byte >> (7 - bit)) & 1;
-
 			if (sprite_pixel) {
 				if (screen[x][y]) {
 					collision = true;
@@ -46,9 +41,7 @@ static inline bool draw_sprite(const byte height, const byte vx, const byte vy, 
 				screen[x][y] = !screen[x][y];
 			}
 		}
-
 	}
-
 	return collision;
 }
 
@@ -98,6 +91,25 @@ void c8_push_stack(Chip8 *const chip8, const word value) {
 void c8_pop_stack(Chip8 *const chip8) {
 	chip8->stack[chip8->stack_pointer] = 0;
 	chip8->stack_pointer--;
+}
+
+void c8_load_rom(Chip8 *const chip8) {
+	FILE* file = fopen("./PONG");
+	if (file == NULL) perror("bruh");
+	
+	fseek(rom_file, 0, SEEK_END);
+    long file_size = ftell(rom_file);
+    fseek(rom_file, 0, SEEK_SET); // Reset file pointer to the beginning
+
+	// Assuming 'chip8_memory' is your emulator's memory array (e.g., unsigned char memory[4096];)
+    // And 'CHIP8_ROM_START_ADDRESS' is defined as 0x200
+    size_t bytes_read = fread(&chip8->memory[START_ADDR], 1, file_size, rom_file);
+    if (bytes_read != file_size) {
+        // Handle error: not all bytes were read
+        fprintf(stderr, "Error reading ROM file: Expected %ld bytes, read %zu bytes.\n", file_size, bytes_read);
+    }
+
+	fclose(rom_file);
 }
 
 void c8_tick(Chip8 *const chip8) {
@@ -190,23 +202,23 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 					break;
 				case 0x4:
 					byte sum = v[x] + v[y];
-					v[0xF] = (sum < v[x]); // overflow?
+					v[0xF] = (sum < v[x]); 		// overflow?
 					v[x] = sum;
 					break;
 				case 0x5:
-					v[0xF] = (v[x] >= v[y]); // didn't borrow?
+					v[0xF] = (v[x] >= v[y]); 	// didn't borrow?
 					v[x] -= v[y];
 					break;
 				case 0x6:
-					v[0xF] = (v[x] & 1); // least significant bit
+					v[0xF] = (v[x] & 1); 		// least significant bit
 					v[x] >>= v[y];
 					break;
 				case 0x7:
-					v[0xF] = (v[x] <= v[y]); // didn't borrow?
+					v[0xF] = (v[x] <= v[y]); 	// didn't borrow?
 					v[x] = v[y] - v[x];
 					break;
 				case 0xE:
-					v[0xF] = (v[x] >> 7) & 1; // most significant bit
+					v[0xF] = (v[x] >> 7) & 1; 	// most significant bit
 					v[x] <<= v[y];
 					break;
 				default:
@@ -237,7 +249,9 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 			break;
 
 		case 0xD:
-			// TODO
+			if (draw_sprite(n, v[x], v[y], chip8->index)) v[0xF] = 1;
+			break;
+
 		case 0xE:
 			switch (nn) {
 				case 0x9E:

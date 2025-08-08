@@ -23,7 +23,6 @@ typedef struct {
 	// other data
 	word stack[STACK_SIZE]; // for entering / exiting subroutines
 	bool keys[NUM_KEYS];    // keyboard!
-	bool keys_prev[NUM_KEYS];
     byte memory[RAM_SIZE];
 	bool screen[SCREEN_WIDTH][SCREEN_HEIGHT];
 } Chip8;
@@ -37,3 +36,4 @@ void c8_tick(Chip8 *const cpu);
 void c8_execute(Chip8 *const cpu, const word opcode);
 
 #endif // CHIP8_H
+
