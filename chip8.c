@@ -93,9 +93,9 @@ void c8_pop_stack(Chip8 *const chip8) {
 	chip8->stack_pointer--;
 }
 
-void c8_load_rom(Chip8 *const chip8) {
-	FILE* file = fopen("./PONG");
-	if (file == NULL) perror("bruh");
+void c8_load_rom(Chip8 *const chip8, const char* fname) {
+	FILE* file = fopen(fname);
+	if (file == NULL) perror("could not open file: %s", fname);
 	
 	fseek(rom_file, 0, SEEK_END);
     long file_size = ftell(rom_file);
