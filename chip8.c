@@ -24,21 +24,21 @@ static inline byte c8_key_released(Chip8 *const chip8) {
 }
 
 // returns true if there is a collision between a sprite pixel and a screen pixel that are both on
-static inline bool draw_sprite(const byte height, const byte vx, const byte vy, const byte *const sprite_addr) {
+static inline bool draw_sprite(Chip8 *const chip8, const byte height, const byte vx, const byte vy, const byte *const sprite_addr) {
 	bool collision = false;
 	// iterate through each row of the sprite (i.e., each byte)
 	for (int row = 0; row < height; row++) {
 		byte sprite_byte = memory[sprite_addr + row];
 		// iterate through each bit of the sprite byte
 		for (byte bit = 0; bit < 8; bit++) {
-			byte screen_x = vx + bit;
-			byte screen_y = vy + row;
+			byte x = vx + bit;
+			byte y = vy + row;
 			bool sprite_pixel = (sprite_byte >> (7 - bit)) & 1;
 			if (sprite_pixel) {
-				if (screen[x][y]) {
+				if (chip8->screen[x][y]) {
 					collision = true;
 				}
-				screen[x][y] = !screen[x][y];
+				chip8->screen[x][y] = !chip8->screen[x][y];
 			}
 		}
 	}
@@ -95,7 +95,7 @@ void c8_pop_stack(Chip8 *const chip8) {
 
 void c8_load_rom(Chip8 *const chip8, const char* fname) {
 	FILE* rom_file = fopen(fname, "rb");
-	if (rom_file == NULL) perror("could not open file: %s", fname);
+	if (rom_file == NULL) printf("could not open file: %s", fname);
 	
 	fseek(rom_file, 0, SEEK_END);
     long file_size = ftell(rom_file);
@@ -138,7 +138,7 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 	byte x = (opcode & 0x0F00) >> 8; 	// 2nd digit of opcode
 	byte y = (opcode & 0x00F0) >> 4;	// 3rd digit of opcode
 	byte a = (opcode & 0xF000) >> 12;	// first digit
-	byte v[NUM_V_REGS] = chip8->v;
+	byte *v = chip8->v;
 	// FIXME: might need to be byte* v = chip8->v;
 	// essentially trying to rename the array
 
@@ -150,7 +150,7 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 					ui_clear_screen();
 					break;
 				case 0x0EE:
-					chip8->pop_stack(chip8);
+					c8_pop_stack(&chip8);
 					break;
 				default:
 					goto unrecognized_instr;
@@ -163,19 +163,19 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 			break;
 		
 		case 0x2:
-			chip8->c8_push_stack(chip8, nnn);
+			c8_push_stack(&chip8, nnn);
 			break;
 
 		case 0x3:
-			if (v[x] == nn) c8_skip(chip8);
+			if (v[x] == nn) c8_skip(&chip8);
 			break;
 		
 		case 0x4:
-			if (v[x] != nn) c8_skip(chip8);
+			if (v[x] != nn) c8_skip(&chip8);
 			break;
 		
 		case 0x5:
-			if (v[x] == v[y]) c8_skip(chip8);
+			if (v[x] == v[y]) c8_skip(&chip8);
 			break;
 		
 		case 0x6:
@@ -229,7 +229,7 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 
 		case 0x9:
 			if (n == 0) {
-				if (v[x] != v[y]) c8_skip(c8_skip);
+				if (v[x] != v[y]) c8_skip(&c8_skip);
 			}
 			else {
 				goto unrecognized_instr;
@@ -249,7 +249,7 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 			break;
 
 		case 0xD:
-			if (draw_sprite(n, v[x], v[y], chip8->index)) v[0xF] = 1;
+			if (draw_sprite(chip8, n, v[x], v[y], (byte*)chip8->index)) v[0xF] = 1;
 			break;
 
 		case 0xE:
@@ -272,12 +272,12 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 					v[x] = chip8->delay_timer;
 					break;
 				case 0x0A:;
-					byte key = c8_key_released(chip8);
+					byte key = c8_key_released(&chip8);
 					if (key != NUM_KEYS) {
 						v[x] = key;
 					}
 					else {
-						c8_wait(chip8);
+						c8_wait(&chip8);
 					}
 					break;
 				case 0x15:
@@ -301,11 +301,11 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 					chip8->memory[chip8->index + 2] = x; // FIXME: i have no idea if this is correct
 					break;
 				case 0x55:
-					memcpy(chip8->v, chip8->memory[chip8->index], x + 1);
+					memcpy(chip8->v, &chip8->memory[chip8->index], x + 1);
 					chip8->index += x + 1;
 					break;
 				case 0x65:
-					memcpy(chip8->memory[chip8->index], chip8->v, x + 1);
+					memcpy(&chip8->memory[chip8->index], chip8->v, x + 1);
 					chip8->index += x + 1;
 					break;
 				default:
