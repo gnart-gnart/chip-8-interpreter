@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
     while (1) {
         c8_tick(&my_chip8);
         ui_draw_screen(my_chip8.screen);
-        ui_delay();
         usleep(1667);
     }
 

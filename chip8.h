@@ -26,12 +26,13 @@ typedef struct {
 } Chip8;
 
 // functions
-void c8_init(Chip8 *const cpu);
-void c8_zero(Chip8 *const cpu);
-void c8_push_stack(Chip8 *const cpu, const word value);
-void c8_pop_stack(Chip8 *const cpu);
-void c8_tick(Chip8 *const cpu);
-void c8_execute(Chip8 *const cpu, const word opcode);
+void c8_init(Chip8 *const chip8);
+void c8_zero(Chip8 *const chip8);
+void c8_load_rom(Chip8 *const chip8, const char* const fname);
+void c8_push_stack(Chip8 *const chip8, const word value);
+void c8_pop_stack(Chip8 *const chip8);
+void c8_tick(Chip8 *const chip8);
+void c8_execute(Chip8 *const chip8, const word opcode);
 
 #endif // CHIP8_H
 
