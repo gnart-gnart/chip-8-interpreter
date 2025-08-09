@@ -13,14 +13,14 @@ void ui_init(const byte width, const byte height) {
   curs_set(0);
 }
 
-void ui_draw_screen(const bool[SCREEN_WIDTH][SCREEN_HEIGHT]) {
+void ui_draw_screen(const bool screen[SCREEN_WIDTH][SCREEN_HEIGHT]) {
     erase();
     for (byte y = 0; y < SCREEN_HEIGHT; y++) {
         for (int x = 0; x < SCREEN_WIDTH; x++) {
-            if (screen[x][y]) mvaddch(y, x, '█');
+            if (screen[x][y]) mvaddch(y, x, '#');
             else mvaddch(y, x, ' ');
         }
-    })
+    }
     refresh();
 }
 

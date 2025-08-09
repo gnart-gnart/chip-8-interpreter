@@ -4,9 +4,6 @@
 #include "global.h" 
 #include <stdbool.h>
 
-typedef uint8_t byte;
-typedef uint16_t word;
-
 // NOTE: v[0xF] is used as a flag by some instructions.
 // NOTE: i is a memory address, so only the lowest 12 bits are typically used
 // NOTE: the stack is an array of 16 16-bit values used to store the address 
@@ -23,6 +20,7 @@ typedef struct {
 	// other data
 	word stack[STACK_SIZE]; // for entering / exiting subroutines
 	bool keys[NUM_KEYS];    // keyboard!
+	bool keys_prev[NUM_KEYS];
     byte memory[RAM_SIZE];
 	bool screen[SCREEN_WIDTH][SCREEN_HEIGHT];
 } Chip8;

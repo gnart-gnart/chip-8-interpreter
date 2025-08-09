@@ -94,8 +94,8 @@ void c8_pop_stack(Chip8 *const chip8) {
 }
 
 void c8_load_rom(Chip8 *const chip8, const char* fname) {
-	FILE* file = fopen(fname);
-	if (file == NULL) perror("could not open file: %s", fname);
+	FILE* rom_file = fopen(fname, "rb");
+	if (rom_file == NULL) perror("could not open file: %s", fname);
 	
 	fseek(rom_file, 0, SEEK_END);
     long file_size = ftell(rom_file);
@@ -119,14 +119,14 @@ void c8_tick(Chip8 *const chip8) {
     // increment program counter to next two bytes
 	c8_skip(chip8);
 	// execute instruction
-    chip8->c8_execute(opcode);
+    c8_execute(chip8, opcode);
     // decrement timers
     if (chip8->delay_timer > 0) chip8->delay_timer--;
     if (chip8->sound_timer > 0) {
         chip8->sound_timer--;
 		ui_play_sound();
 	}
-	memcpy(keys_prev, keys, sizeof(keys));
+	memcpy(chip8->keys_prev, chip8->keys, sizeof(chip8->keys));
 }
 
 // see https://chip8.gulrak.net/ for documentation
@@ -271,7 +271,7 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 				case 0x07:
 					v[x] = chip8->delay_timer;
 					break;
-				case 0x0A:
+				case 0x0A:;
 					byte key = c8_key_released(chip8);
 					if (key != NUM_KEYS) {
 						v[x] = key;
@@ -292,7 +292,7 @@ void c8_execute(Chip8 *const chip8, const word opcode) {
 				case 0x29:
 					chip8->index = fontset[v[x]];
 					break;
-				case 0x33: // convert v[x] to 3-digit decimal format
+				case 0x33:; // convert v[x] to 3-digit decimal format
 					byte x = v[x];
 					chip8->memory[chip8->index] = (x - (x % 100)) / 100;
 					x -= chip8->memory[chip8->index] * 100;
