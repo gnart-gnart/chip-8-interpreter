@@ -2,7 +2,7 @@
 #include "ui.h"
 #include "global.h"
 // helper functions
-
+bool prev_screen[SCREEN_WIDTH][SCREEN_HEIGHT];
 
 // implementations
 void ui_init(const byte width, const byte height) {
@@ -11,6 +11,8 @@ void ui_init(const byte width, const byte height) {
   noecho();
   nodelay(stdscr, 1);
   curs_set(0);
+  
+  memset(prev_screen, 0, sizeof prev_screen);
 }
 
 void ui_draw_screen(const bool screen[SCREEN_WIDTH][SCREEN_HEIGHT]) {
